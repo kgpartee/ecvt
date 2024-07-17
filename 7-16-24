@@ -1,9 +1,14 @@
 #include <Arduino.h>
+// warning i do not know c/c++ however i do know arduino (ish) so that what i wrote this in but its taking issue with a lot of the things im 
+//doing and i don't know if its a me issue or an ide-wants-c/c++ issue. nevertheless it is something. 
+
+// also shoutout konrad for outlining most of this <3
+
 // E-cvt automatic mode skeleton code
 // Nominal restricted Kohler idle is 1700rpm, max is 3800rpm, and peak power is at 3000rpm.
 //int idleRPM = 1800; // Threshold RPM for idle to engage
 //int targetRPM = 3000; // Engine power-maximizing RPM, and target for PID
-//int numHallMagnets = 6; // Number of magnets per revolution that trigger hall sensor
+int numHallMagnets = 6; // Number of magnets per revolution that trigger hall sensor
 int encoderResolution = 4095; // Default 12-bit esp adc resolution, for scaling purposes
 // Positions range from 0 to 1000, and are scaled later to encoder input range.
 //int idlePos = 50; // Sheave position where sheave disengages for idle
@@ -14,18 +19,9 @@ int encoderResolution = 4095; // Default 12-bit esp adc resolution, for scaling 
 int engineRPM; // Calculated from hall sensor
 int encoderReading; // ADC input from linear potentiometer
 //int position; // Sheave position, scale it to between 0-1000.
-//int hallCount; // Hall sensor counts 
-//int rpmTimerDeltaT; // How often the timer triggers, in seconds
-// Interrupt to count hall effect rising edges
-//hallInterrupt {
-//    hallCount++;
-//}
-// timer set every rpmTimerDeltaT to calculate measured rpm and reset hall count
-//timer rpmTimer {
-//    engineRPM = hallCount*60/(rpmTimerDeltaT*numHallMagnets);
-//    hallCount = 0;
-//}
-
+int hallCount; // Hall sensor counts 
+int rpmTimerDeltaT; // How often the timer triggers, in seconds
+int pidLoopDelay; // how often the timer triggers in us
 
 uint8_t potPinOne = 1; // measures at potentiometer lever
 uint8_t potPinTwo = 2; //measures across whole potentiometer resistor
@@ -34,31 +30,69 @@ uint8_t directionPin = 4; // controls the motor's direction
 uint8_t brakePin = 5; //starts and stops the motor
 uint8_t hallOutputPin = 6; // reads each time the hall sensor passes a magnet
 
+// if ypu dont get the naming conventions of my timer variables i don't either it's just the same conventions ilya uses 
+// and in ilya we trust prayer hands emoji x3
 
+// i dont really get the timer either so anyone reading this should expect Many Issues
 
+hw_timer_t * rpmTimer = NULL; 
+portMUX_TYPE rpmTimerMUX = portMUX_INITIALIZER_UNLOCKED;
+
+void IRAM_ATTR hallReset() {
+  portENTER_CRITICAL_ISR(&rpmTimerMUX);
+    engineRPM = hallCount*60/(rpmTimerDeltaT*numHallMagnets);
+    hallCount = 0;
+  portEXIT_CRITICAL_ISR(&rpmTimerMUX);
+}
+
+hw_timer_t * pidTimer = NULL; 
+portMUX_TYPE pidTimerMUX = portMUX_INITIALIZER_UNLOCKED;
+
+void IRAM_ATTR pidLoop() {
+  portENTER_CRITICAL_ISR(&pidTimerMUX);
+    //idk some function
+  portEXIT_CRITICAL_ISR(&pidTimerMUX);
+}
 // put function declarations here:
 
-int moveMotor(int currentPos, int targetPos);
+int moveMotor(int currentPos, int targetPos){
+  bool direction = LOW; 
 
-if (targetPos - currentPos < 0) {
-  int direction = LOW; 
-}
-else {
-  int direction = HIGH;
-}
+  if (targetPos - currentPos < 0) {
+    int direction = LOW; 
+  }
+  else {
+    int direction = HIGH;
+  }
 
-if (direction != directionPin){
-  
-}
-int motorSpeed; // number between 0-255 that sets PWM duty cycle
 
-return motorSpeed;
+  //the motor contoller specs said to brake the motor before changing directions bc otherwise it will likely damage the motor
+  if (direction != digitalRead(directionPin)){
+    digitalWrite(brakePin, LOW);
+    delayMicroseconds(10);
+    digitalWrite(brakePin, HIGH);
+  }
+
+  int motorSpeed; // number between 0-255 that sets PWM duty cycle
+
+  //do something with the PID loop to find speed? not entirely sure how to do this
+
+  return motorSpeed;
 
 // to move the motor: analogWrite(pwmPin, moveMotor(position, setpoint));
+}
+
+// Interrupt to count hall effect rising edges
+void IRAM_ATTR hallInterrupt() {
+    hallCount++;
+}
+
 
 void setup() {
   // put your setup code here, to run once:
   int result = myFunction(2, 3);
+  Serial.begin(115200);
+  
 
   //configure whether pins will be sending or receiving data
   pinMode(potPinOne, INPUT);
@@ -68,7 +102,23 @@ void setup() {
   pinMode(brakePin, OUTPUT);
   pinMode(hallOutputPin, INPUT);
 
+  //initialize variable values, will def need to add more
+  digitalWrite(brakePin, HIGH); // set brake off
+  hallCount = 0; 
+
+  // interrupt set up
+  attachInterrupt(digitalPinToInterrupt(hallOutputPin), hallInterrupt, RISING);
+
   //hardware timer setup
+  rpmTimer = timerBegin(1, 80, true);
+  timerAttachInterrupt(rpmTimer, &hallReset, true);
+  timerAlarmWrite(rpmTimer, rpmTimerDeltaT, true);
+  timerAlarmEnable(rpmTimer);
+
+  pidTimer = timerBegin(2, 80, true);
+  timerAttachInterrupt(pidTimer, &pidLoop, true);
+  timerAlarmWrite(pidTimer, pidLoopDelay, true);
+  timerAlarmEnable(pidTimer);
 }
 
 void loop() {
