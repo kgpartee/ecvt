@@ -25,10 +25,10 @@ int hallCount; // Hall sensor counts
 int rpmTimerDeltaT = 500; // How often the timer triggers, in seconds
 int pidLoopDelay; // how often the timer triggers in us
 
-uint16_t pot_v;
-uint16_t total_v;
-uint8_t positionZero;
-uint8_t positionThousand; 
+uint16_t pot_v; // measurement across sliding part of potentiometer
+uint16_t total_v; //measuremetn across potentiometer used as resistor
+uint8_t positionZero; //zero value based on sheave travel (may not be full retraction of potentiometer)
+uint8_t positionThousand; //1000 value based on sheave travel (may not be full extension of potentiometer)
 
 uint8_t potPinOne = 1; // measures at potentiometer lever
 uint8_t potPinTwo = 2; //measures across whole potentiometer resistor
@@ -43,13 +43,13 @@ uint8_t limitSwitchTwo = 9; //measures the other maximum sheave travel position
 
 int setpointPos;//determined by engine rpm
 // pid loop coefficients
-int kpPos;
-int kiPos;
-int kdPos;
+int kpPos = 1;
+int kiPos = 1;
+int kdPos = 1;
 
-int kpRPM;
-int kiRPM;
-int kdRPM; 
+int kpRPM = 1;
+int kiRPM = 1;
+int kdRPM = 1; 
 
 float lastErrorPos = 0;
 float errorPos = 0;
@@ -101,7 +101,9 @@ void IRAM_ATTR pidLoopPos() {
     //idk some function
     //setpoint = pidTermRPM
     //current = position
-    readPos();
+    readPos(); //find the current sheave position scaled 1-1000
+
+    //constrain travel before limit switches 
     if (position > 900) {
       setpointPos = 899; 
       posPidCalc();
@@ -112,6 +114,7 @@ void IRAM_ATTR pidLoopPos() {
       posPidCalc();
       ledcWrite(pwmPin, pidTermPos);
     }
+    // unconstrained travel
     else{
       setpointPos = pidTermRPM; 
     posPidCalc();
@@ -128,13 +131,15 @@ void IRAM_ATTR pidLoopPos() {
 
 
 
-// Interrupt to count hall effect rising edges
+// Interrupt to count hall effect rising edges (each time a magnet passes the sensor)
 void IRAM_ATTR hallInterrupt() {
     hallCount++;
 }
 
 // interrupt to run calibration sequence 
 void IRAM_ATTR calibrationInterrupt(){
+
+// is there a better way to do this (ie not digital read so its not mad at me)
 while(digitalRead(limitSwitchOne) = LOW) {
 digitalWrite(directionPin, HIGH);
 analogWrite(pwmPin, 50);
