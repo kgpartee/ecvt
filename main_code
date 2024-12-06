@@ -1,0 +1,61 @@
+#include <Arduino.h>
+// E-cvt automatic mode skeleton code
+// Nominal restricted Kohler idle is 1700rpm, max is 3800rpm, and peak power is at 3000rpm.
+//int idleRPM = 1800; // Threshold RPM for idle to engage
+//int targetRPM = 3000; // Engine power-maximizing RPM, and target for PID
+//int numHallMagnets = 6; // Number of magnets per revolution that trigger hall sensor
+//int encoderResolution = 4095; // Default 12-bit esp adc resolution, for scaling purposes
+// Positions range from 0 to 1000, and are scaled later to encoder input range.
+//int idlePos = 50; // Sheave position where sheave disengages for idle
+//int lowPos = 100; // Sheave position for lowest gear possible
+//int highPos = 900; // Sheave position for highest gear possible
+//ints for position pid gains;
+//ints for engine rpm pid gains;
+//int engineRPM; // Calculated from hall sensor
+//int encoderReading; // ADC input from linear potentiometer
+//int position; // Sheave position, scale it to between 0-1000.
+//int hallCount; // Hall sensor counts 
+//int rpmTimerDeltaT; // How often the timer triggers, in seconds
+// Interrupt to count hall effect rising edges
+//hallInterrupt {
+//    hallCount++;
+//}
+// timer set every rpmTimerDeltaT to calculate measured rpm and reset hall count
+//timer rpmTimer {
+//    engineRPM = hallCount*60/(rpmTimerDeltaT*numHallMagnets);
+//    hallCount = 0;
+//}
+// Forever loop
+//loop {
+//    encoderReading = analogRead(encoder_pin);
+//    position = (1000/encoderResolution)*encoderReading;
+//    if(engineRPM < idleRPM) { // Idle case
+//        PID the encoder position to idlePos -> output to motor PWM;
+//    } else if(position > highPos) { // Upper bound case
+//        PID the encoder position to highPos -> output to motor PWM;
+//    } else if(position < lowPos) { // Lower bound case
+//        PID the encoder position to lowPos -> output to motor PWM;
+//    } else { // It does this most of the time
+//        PID the engine RPM to targetRPM -> use output as encoder position PID input;
+//        PID the encoder position to rpm PID output -> output to motor PWM;
+//    }
+//}
+
+
+// put function declarations here:
+int sheaveDist(int1, int2)
+int moveMotor(sheaveDist, priSpeed);
+
+void setup() {
+  // put your setup code here, to run once:
+  int result = myFunction(2, 3);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+}
+
+// put function definitions here:
+int myFunction(int x, int y) {
+  return x + y;
+}
