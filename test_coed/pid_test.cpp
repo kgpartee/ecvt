@@ -1,5 +1,5 @@
 #include <Arduino.h>
-
+#include "motor.h"
 
 // warning i do not know c/c++ however i do know arduino (ish) so that what i wrote this in but its taking issue with a lot of the things im 
 //doing and i don't know if its a me issue or an ide-wants-c/c++ issue. nevertheless it is something. 
@@ -15,7 +15,7 @@ int encoderResolution = 4095; // Default 12-bit esp adc resolution, for scaling 
 // Positions range from 0 to 1000, and are scaled later to encoder input range.
 int idlePos = 50; // Sheave position where sheave disengages for idle
 int lowPos = 100; // Sheave position for lowest gear possible
-int highPos = 900; // Sheave position for highest gear possible
+int highPos = 4000; // Sheave position for highest gear possible
 int manualPosOne; 
 int manualPosTwo; 
 
@@ -30,7 +30,7 @@ float position; // Sheave position, scale it to between 0-1000.
 int speed;
 int hallCount = 0; // Hall sensor counts 
 int rpmTimerDeltaT = 500; // How often the timer triggers, in seconds, should be faster than pid loop methinks 
-int pidLoopDelay; // how often the timer triggers in us
+int pidLoopDelay = 100000; // how often the timer triggers in us
 
 uint16_t pot_v; // measurement across sliding part of potentiometer
 uint16_t total_v; //measuremetn across potentiometer used as resistor
@@ -57,9 +57,9 @@ uint8_t enablePin; // runs when high or floating
 
 int setpointPos;//determined by engine rpm
 // pid loop coefficients
-int kpPos = 1;
-int kiPos = 1;
-int kdPos = 1;
+int kpPos = 0.5;
+int kiPos = 0;
+int kdPos = 0;
 
 int kpRPM = 1;
 int kiRPM = 1;
@@ -79,36 +79,44 @@ float pidTermRPM = 0;
 float threshold = 2000;
 bool hall_trigger;  
   
-// tested code:  
-//   position = analogRead(potPinOne) * 256/4096; // doesn't really matter but division by multiples of 2 is much faster
-
-//   if (position < 128){ // 127 should be 0, 0 should be 255
-//     digitalWrite(directionPin, HIGH);
-//     position = (127 - position) * 2;
-//   }
-//   else { // 128 should be 0, 255 should be 255
-//     digitalWrite(directionPin, LOW);
-//     position = (position - 128) * 2;
-//   }
-
-//   analogWrite(pwmPin, position);
-//   delay(10);
 
 
 // selections from main code that control direction switching (do they look like they would work?)
+
+ void readPos() {
+    pot_v = analogRead(potPinOne); // potentiometer lever
+// total_v = analogRead(potPinTwo); // whole resistor
+
+// read the voltage across the potentiometer as a proportion, because when the voltage changes as the battery drains, the proportion will remain constant 
+   // encoderReading = pot_v / total_v; // find how far along the resistor the potentiometer is as a fraction
+    position = pot_v; // scale to make more workable number based on zero/thousand setpoints from calibration
+    Serial.println("position read");
+}
+
+
+ void posPidCalc() {
+  errorPos = position - setpointPos;
+
+  changeErrorPos = errorPos - lastErrorPos; 
+  totalErrorPos += errorPos;
+  pidTermPos = (kpPos * errorPos) + (kiPos * totalErrorPos) + (kdPos * changeErrorPos);
+
+  lastErrorPos = errorPos; 
+}
+
 
 hw_timer_t * pidTimerPos = NULL; 
 portMUX_TYPE pidTimerPosMUX = portMUX_INITIALIZER_UNLOCKED;
 
 void IRAM_ATTR pidLoopPos() {
   portENTER_CRITICAL_ISR(&pidTimerPosMUX);
-    //setpoint = pidTermRPM
-    //current = position
-    // readPos(); //find the current sheave position scaled 1-1000
+    // setpoint = pidTermRPM
+    // current = position
+    readPos(); //find the current sheave position scaled 1-4095
 
-    // //constrain travel before limit switches 
+    //constrain travel before limit switches 
 
-    // // this is less important for what i am lookign at rn 
+    // this is less important for what i am lookign at rn 
     // if(position > highPos) {
     //   setpointPos = highPos; 
     //   setDirection();
@@ -129,15 +137,19 @@ void IRAM_ATTR pidLoopPos() {
     // }
 
 
-    // // unconstrained travel
-    // // this is VVVVVV important for what i'm looking at rn!!!!!
-    // else{
-    //   setpointPos = pidTermRPM; 
-    //   setDirection();
-    //   posPidCalc();
-    //   ledcWrite(pwmPin, pidTermPos);
-    // }
-    Serial.println("test");
+    // unconstrained travel
+    // this is VVVVVV important for what i'm looking at rn!!!!!
+   // else{
+      setpointPos = 2048; 
+      // setDirection();
+      posPidCalc();
+     // ledcWrite(pwmPin, pidTermPos);
+      set_direction_speed(pidTermPos);
+      Serial.println(pidTermPos);
+      Serial.println(errorPos);
+   // }
+
+    
   portEXIT_CRITICAL_ISR(&pidTimerPosMUX);
 }
 
@@ -146,39 +158,23 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   pinMode(potPinOne, INPUT);
-  pinMode(pwmPin, OUTPUT);
-  pinMode(directionPin, OUTPUT);
 
-  pidTimerPos = timerBegin(3, 80, true);
-  timerAttachInterrupt(pidTimerPos, &pidLoopPos, true);
-  timerAlarmWrite(pidTimerPos, pidLoopDelay, true);
-  timerAlarmEnable(pidTimerPos);
 
-  ledcAttachPin(pwmPin, 0);
-  ledcSetup(0,1500,4);
+  setup_motor();
+  Serial.println("motor setup complete");
 
+//   pidTimerPos = timerBegin(3, 80, true);
+//   timerAttachInterrupt(pidTimerPos, &pidLoopPos, true);
+//   timerAlarmWrite(pidTimerPos, pidLoopDelay, true);
+//   timerAlarmEnable(pidTimerPos);
+  Serial.println("timer setup complete");
+
+  
 }
 
 
-void posPidCalc() {
-  errorPos = setpointPos - position;
 
-  changeErrorPos = errorPos - lastErrorPos; 
-  totalErrorPos += errorPos;
-  pidTermPos = (kpPos * errorPos) + (kiPos * totalErrorPos) + (kdPos * changeErrorPos);
 
-  lastErrorPos = errorPos; 
-}
-
-void readPos() {
-pot_v = analogRead(potPinOne); // potentiometer lever
-// total_v = analogRead(potPinTwo); // whole resistor
-
-// read the voltage across the potentiometer as a proportion, because when the voltage changes as the battery drains, the proportion will remain constant 
-encoderReading = pot_v / total_v; // find how far along the resistor the potentiometer is as a fraction
-position = positionThousand * (encoderReading - positionZero); // scale to make more workable number based on zero/thousand setpoints from calibration
-
-}
 
 // task: which direction is which? --> moving away from motor is positive (position is less than setpoint)
 // fully retracted is position = 255 and motor screwing in (sheaves traveling outwards) and directionPin LOW
@@ -186,22 +182,22 @@ position = positionThousand * (encoderReading - positionZero); // scale to make 
 // more task: make sure main code matches whatever we decide on for directional conventions 
 // also do we need to break before changing directions? like should we add a if current_direction != next_direction type of situation 
 // do we need the enable pin?
-void setDirection() {
+// //void setDirection() {
   
-  if (position < setpointPos){
-    digitalWrite(directionPin, HIGH);
-  }
-  else {
-    digitalWrite(directionPin, LOW);
-  }
+//   if (position < setpointPos){
+//     digitalWrite(directionPin, HIGH);
+//   }
+//   else {
+//     digitalWrite(directionPin, LOW);
+//   }
 
-}
+//}
 
 
 
 // tested direction switchin code in cole's test setup:
 
-// void loop() {
+ void loop() {
 //     while (pot_v < 3900){
 //         Serial.println(pot_v);
 //         Serial.println("Increasing");
@@ -222,6 +218,10 @@ void setDirection() {
 //     }
 
 //     analogWrite(pwmPin, 0);
-//     delay(1000);
-// }
+    delay(100);
+    readPos();
+    Serial.printf("position: %d \n", position);
+    Serial.printf("pid term : %d \n", pidTermPos);
+    Serial.printf("error term : %d \n", errorPos);
+ }
 
