@@ -1,5 +1,6 @@
 #include "motor.h"
 #include <Arduino.h>
+#include "pins.h"
 // functions: motor setup and motor direction 
 
 
