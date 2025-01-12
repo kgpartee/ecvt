@@ -1,5 +1,3 @@
-//test
-
 #include <Arduino.h>
 #include "motor.h"
 #include "hall_sensor.h"
@@ -44,8 +42,8 @@ uint8_t positionThousand; //1000 value based on sheave travel (may not be full e
 int setpoint_pos;//determined by engine rpm
 // pid loop coefficients
 int kp_pos = 1;
-int ki_pos = 1;
-int kd_pos = 1;
+int ki_pos = 0;
+int kd_pos = 0;
 
 int kp_RPM = 1;
 int ki_RPM = 1;
@@ -74,12 +72,71 @@ int v;
 
 // put function declarations here:
 
-// Interrupt to count hall effect rising edges (each time a magnet passes the sensor)
-//void IRAM_ATTR hall_interrupt() {
-    // v = analogRead(HALL_OUTPUT_PIN);
-    // read_hall(v);
-//    return;
-//}
+// // Interrupt to count hall effect rising edges (each time a magnet passes the sensor)
+// hw_timer_t * hall_timer = NULL; 
+// portMUX_TYPE hall_timer_MUX = portMUX_INITIALIZER_UNLOCKED;
+
+// void IRAM_ATTR hall_interrupt() {
+//   portENTER_CRITICAL_ISR(&hall_timer_MUX);
+//     v = analogRead(HALL_OUTPUT_PIN);
+//     read_hall(v);
+
+//   portEXIT_CRITICAL_ISR(&hall_timer_MUX);
+// }
+
+
+hw_timer_t * pid_timer_pos = NULL; 
+portMUX_TYPE pid_timer_pos_MUX = portMUX_INITIALIZER_UNLOCKED;
+
+void pos_pid_calc() {
+  error_pos = setpoint_pos - get_position();
+
+  change_error_pos = error_pos - last_error_pos; 
+  total_error_pos += error_pos;
+  pid_term_pos = (kp_pos * error_pos) + (ki_pos * total_error_pos) + (kd_pos * change_error_pos);
+
+  last_error_pos = error_pos; 
+}
+
+void IRAM_ATTR pid_loop_pos() {
+  portENTER_CRITICAL_ISR(&pid_timer_pos_MUX);
+    //setpoint = pidTermRPM
+    //current = position
+    read_pos(); //find the current sheave position scaled 1-1000
+
+    // //constrain travel before limit switches 
+    // if(get_position() > HIGH_POS) {
+    //   setpoint_pos = HIGH_POS; 
+    //   //setDirection();
+    //   pos_pid_calc();
+    //   //ledcWrite(pwmPin, pidTermPos);
+    //   set_direction_speed(pid_term_pos);
+    // }
+    // else if(get_position()<LOW_POS){
+    //   setpoint_pos = LOW_POS; 
+    //   //setDirection();
+    //   pos_pid_calc();
+    //   //ledcWrite(pwmPin, pidTermPos);
+    //   set_direction_speed(pid_term_pos);
+    // }
+    // else if(get_rpm() < IDLE_RPM){
+    //   setpoint_pos = IDLE_POS; 
+    //   //setDirection();
+    //   pos_pid_calc(); 
+    //   //ledcWrite(pwmPin, pidTermPos);
+    //   set_direction_speed(pid_term_pos);
+    // }
+    // unconstrained travel
+    // else{
+      setpoint_pos = 2048; 
+      //setDirection();
+      pos_pid_calc();
+      //ledcWrite(pwmPin, pidTermPos);
+      set_direction_speed(pid_term_pos);
+    //}
+
+  portEXIT_CRITICAL_ISR(&pid_timer_pos_MUX);
+}
 
 
 void setup() {
@@ -114,16 +171,16 @@ void setup() {
   // digitalWrite(buttonPower, HIGH); 
 
   // interrupt set up
-  // attachInterrupt(digitalPinToInterrupt(HALL_OUTPUT_PIN), hall_interrupt, RISING);
   // attachInterrupt(digitalPinToInterrupt(calibration_button), calibration_interrupt, RISING);
   // attachInterrupt(digitalPinToInterrupt(limit_switch_one), end_case_one, RISING);
   // attachInterrupt(digitalPinToInterrupt(limit_switch_two), end_case_two, RISING);
 
-  //hardware timer setup
-  // rpm_timer = timerBegin(1, 80, true);
-  // timerAttachInterrupt(rpm_timer, &hall_reset, true);
-  // timerAlarmWrite(rpm_timer, RPM_TIMER_DELAY, true);
-  // timerAlarmEnable(rpm_timer);
+  // hall_timer = timerBegin(0, 80, true);
+  // timerAttachInterrupt(hall_timer, &hall_interrupt, true);
+  // timerAlarmWrite(hall_timer, HALL_TIMER_DELAY, true);
+  // timerAlarmEnable(hall_timer);
+
+
 
 
   // pid_timer_RPM = timerBegin(2, 80, true);
@@ -131,24 +188,20 @@ void setup() {
   // timerAlarmWrite(pid_timer_RPM, pid_loop_delay, true);
   // timerAlarmEnable(pid_timer_RPM);
 
-  // pid_timer_pos = timerBegin(3, 80, true);
-  // timerAttachInterrupt(pid_timer_pos, &pid_loop_pos, true);
-  // timerAlarmWrite(pid_timer_pos, pid_loop_delay, true);
-  // timerAlarmEnable(pid_timer_pos);
+
+  pid_timer_pos = timerBegin(3, 80, true);
+  timerAttachInterrupt(pid_timer_pos, &pid_loop_pos, true);
+  timerAlarmWrite(pid_timer_pos, pid_loop_delay, true);
+  timerAlarmEnable(pid_timer_pos);
 
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  int pos = get_position();
+  Serial.println(pos);
+  delay(100);
 }
 
 // put function definitions here:
-
-
-
-
-
-
-
 

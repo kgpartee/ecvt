@@ -3,7 +3,7 @@
 #include "pins.h"
 
 int pot_v; // measurement across sliding part of potentiometer
-float position; // Sheave position, reads from 0 to 4095, might scale it to between 0-1000.
+int position; // Sheave position, reads from 0 to 4095, might scale it to between 0-1000.
 
 void setup_potentiometer(){
     pinMode(POT_PIN, INPUT);
@@ -19,3 +19,6 @@ void read_pos() {
 
 }
 
+int get_position(){
+    return position;
+}

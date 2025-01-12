@@ -2,6 +2,7 @@
 #include "motor.h"
 #include "hall_sensor.h"
 #include "potentiometer.h"
+#include "pins.h"
 
 
 // warning i do not know c/c++ however i do know arduino (ish) so that what i wrote this in but its taking issue with a lot of the things im 
@@ -72,23 +73,12 @@ float change_error_RPM = 0;
 float total_error_RPM = 0;
 float pid_term_RPM = 0;
  
-
+int v;
 
 // if ypu dont get the naming conventions of my timer variables i don't either it's just the same conventions ilya uses 
 // and in ilya we trust prayer hands emoji x3
 
 // i dont really get the timer either so anyone reading this should expect Many Issues
-
-hw_timer_t * rpm_timer = NULL; 
-portMUX_TYPE rpm_timer_MUX = portMUX_INITIALIZER_UNLOCKED;
-
-void IRAM_ATTR hall_reset() {
-  portENTER_CRITICAL_ISR(&rpm_timer_MUX);
-  
-    engine_RPM = hall_count*60/(RPM_TIMER_DELAY*NUM_HALL_MAGNETS);
-    hall_count = 0;
-  portEXIT_CRITICAL_ISR(&rpm_timer_MUX);
-}
 
 hw_timer_t * pid_timer_pos = NULL; 
 portMUX_TYPE pid_timer_pos_MUX = portMUX_INITIALIZER_UNLOCKED;
@@ -154,9 +144,16 @@ void IRAM_ATTR pid_loop_pos() {
 // put function declarations here:
 
 // Interrupt to count hall effect rising edges (each time a magnet passes the sensor)
+// Interrupt to count hall effect rising edges (each time a magnet passes the sensor)
+hw_timer_t * hall_timer = NULL; 
+portMUX_TYPE hall_timer_MUX = portMUX_INITIALIZER_UNLOCKED;
+
 void IRAM_ATTR hall_interrupt() {
+  portENTER_CRITICAL_ISR(&hall_timer_MUX);
     v = analogRead(HALL_OUTPUT_PIN);
     read_hall(v);
+
+  portEXIT_CRITICAL_ISR(&hall_timer_MUX);
 }
 
 // interrupt to run calibration sequence 
@@ -253,16 +250,15 @@ void setup() {
   digitalWrite(buttonPower, HIGH); 
 
   // interrupt set up
-  attachInterrupt(digitalPinToInterrupt(HALL_OUTPUT_PIN), hall_interrupt, CHANGE);
   attachInterrupt(digitalPinToInterrupt(calibration_button), calibration_interrupt, RISING);
   attachInterrupt(digitalPinToInterrupt(limit_switch_one), end_case_one, RISING);
   attachInterrupt(digitalPinToInterrupt(limit_switch_two), end_case_two, RISING);
 
   //hardware timer setup
-  rpm_timer = timerBegin(1, 80, true);
-  timerAttachInterrupt(rpm_timer, &hall_reset, true);
-  timerAlarmWrite(rpm_timer, RPM_TIMER_DELAY, true);
-  timerAlarmEnable(rpm_timer);
+  hall_timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(hall_timer, &hall_interrupt, true);
+  timerAlarmWrite(hall_timer, HALL_TIMER_DELAY, true);
+  timerAlarmEnable(hall_timer);
 
 
   pid_timer_RPM = timerBegin(2, 80, true);
@@ -289,7 +285,7 @@ void loop() {
 
 
 void rpm_pid_calc() {
-error_RPM = SETPOINT_RPM - engine_RPM;
+error_RPM = SETPOINT_RPM - rpm_calc();
 
 change_error_RPM = error_RPM - last_error_RPM;
 total_error_RPM += error_RPM;

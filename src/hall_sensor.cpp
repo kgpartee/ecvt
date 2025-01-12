@@ -32,3 +32,12 @@ void read_hall(int voltage) {
 
 }
 
+int rpm_calc(){
+    engine_rpm = hall_count*60/(RPM_TIMER_DELAY*NUM_HALL_MAGNETS);
+    hall_count = 0;
+    return engine_rpm;
+}
+
+int get_rpm(){
+  return engine_rpm;
+}

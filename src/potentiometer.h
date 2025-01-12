@@ -9,3 +9,4 @@
 
 void setup_potentiometer();
 void read_pos();
+int get_position();
