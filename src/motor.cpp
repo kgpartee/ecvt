@@ -10,11 +10,12 @@ void setup_motor() {
   // put your setup code here, to run once:
   
  
-  pinMode(PWM_PIN, OUTPUT);
+  // pinMode(PWM_PIN, OUTPUT);
   pinMode(DIRECTION_PIN, OUTPUT);
-  ledcSetup(0,1500,4);
+  ledcSetup(4,1500,8);
 
-  ledcAttachPin(PWM_PIN, 0);
+  ledcAttachPin(PWM_PIN, 4);
+  // ledcAttach(PWM_PIN, 1500, 8);
 
 }
 
@@ -34,5 +35,6 @@ void set_direction_speed(int motor_speed) {
     motor_speed = 255;
   }
 
-    ledcWrite(PWM_PIN, motor_speed);
+    ledcWrite(4, motor_speed);
+    // analogWrite(PWM_PIN, 100);
 }

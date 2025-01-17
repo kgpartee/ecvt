@@ -41,9 +41,9 @@ uint8_t positionThousand; //1000 value based on sheave travel (may not be full e
 
 int setpoint_pos;//determined by engine rpm
 // pid loop coefficients
-int kp_pos = 1;
-int ki_pos = 0;
-int kd_pos = 0;
+float kp_pos = 0.1;
+float ki_pos = 0;
+float kd_pos = 0;
 
 int kp_RPM = 1;
 int ki_RPM = 1;
@@ -199,7 +199,14 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   int pos = get_position();
-  Serial.println(pos);
+
+  Serial.printf(">pos: %d\n", pos);
+  Serial.printf(">pidTerm: %f\n", pid_term_pos);
+  Serial.printf("analog: %d\n", analogRead(POT_PIN));
+  //  ledcWrite(PWM_PIN, 100);
+  // analogWrite(13, 100);
+  // analogWrite(PWM_PIN, 100);
+  
   delay(100);
 }
 
