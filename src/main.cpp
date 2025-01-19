@@ -104,30 +104,7 @@ void IRAM_ATTR pid_loop_pos() {
     //current = position
     read_pos(); //find the current sheave position scaled 1-1000
 
-    // //constrain travel before limit switches 
-    // if(get_position() > HIGH_POS) {
-    //   setpoint_pos = HIGH_POS; 
-    //   //setDirection();
-    //   pos_pid_calc();
-    //   //ledcWrite(pwmPin, pidTermPos);
-    //   set_direction_speed(pid_term_pos);
-    // }
-    // else if(get_position()<LOW_POS){
-    //   setpoint_pos = LOW_POS; 
-    //   //setDirection();
-    //   pos_pid_calc();
-    //   //ledcWrite(pwmPin, pidTermPos);
-    //   set_direction_speed(pid_term_pos);
-    // }
-    // else if(get_rpm() < IDLE_RPM){
-    //   setpoint_pos = IDLE_POS; 
-    //   //setDirection();
-    //   pos_pid_calc(); 
-    //   //ledcWrite(pwmPin, pidTermPos);
-    //   set_direction_speed(pid_term_pos);
-    // }
-    // unconstrained travel
-    // else{
+
       setpoint_pos = 2048; 
       //setDirection();
       pos_pid_calc();
@@ -148,51 +125,18 @@ void setup() {
   setup_motor();
   setup_hall();
   setup_potentiometer();
-  // pinMode(potPinTwo, INPUT);
-  // pinMode(potPowerPin, OUTPUT);
 
-  // pinMode(brake_pin, OUTPUT);
+  
 
-  // pinMode(calibration_button, INPUT);
-  // pinMode(limit_switch_one, INPUT);
-  // pinMode(limit_switch_one_power, OUTPUT);
-  // pinMode(limit_switch_two, INPUT);
-  // pinMode(limit_switch_two_power, OUTPUT);
-  // pinMode(manualButtonOne, INPUT); 
-  // pinMode(manualButtonTwo, INPUT); 
-  // pinMode(buttonPower, OUTPUT);
+  //configure PID loop timer based interupt
+  // pid_timer_pos = timerBegin(3, 80, true);
+  // timerAttachInterrupt(pid_timer_pos, &pid_loop_pos, true);
+  // timerAlarmWrite(pid_timer_pos, pid_loop_delay, true);
+  // timerAlarmEnable(pid_timer_pos);
 
-  //initialize variable values, will def need to add more
-  // digitalWrite(brake_pin, HIGH); // set brake off
- 
-  // digitalWrite(potPowerPin, HIGH); // power potentiometer at voltage that wont break MCU (3.3V)
-  // digitalWrite(limit_switch_one_power, HIGH);
-  // digitalWrite(limit_switch_two_power, HIGH);
-  // digitalWrite(buttonPower, HIGH); 
+  
 
-  // interrupt set up
-  // attachInterrupt(digitalPinToInterrupt(calibration_button), calibration_interrupt, RISING);
-  // attachInterrupt(digitalPinToInterrupt(limit_switch_one), end_case_one, RISING);
-  // attachInterrupt(digitalPinToInterrupt(limit_switch_two), end_case_two, RISING);
-
-  // hall_timer = timerBegin(0, 80, true);
-  // timerAttachInterrupt(hall_timer, &hall_interrupt, true);
-  // timerAlarmWrite(hall_timer, HALL_TIMER_DELAY, true);
-  // timerAlarmEnable(hall_timer);
-
-
-
-
-  // pid_timer_RPM = timerBegin(2, 80, true);
-  // timerAttachInterrupt(pid_timer_RPM, &pid_loop_RPM, true);
-  // timerAlarmWrite(pid_timer_RPM, pid_loop_delay, true);
-  // timerAlarmEnable(pid_timer_RPM);
-
-
-  pid_timer_pos = timerBegin(3, 80, true);
-  timerAttachInterrupt(pid_timer_pos, &pid_loop_pos, true);
-  timerAlarmWrite(pid_timer_pos, pid_loop_delay, true);
-  timerAlarmEnable(pid_timer_pos);
+  Serial.println("Setup Complete");
 
 }
 
@@ -203,9 +147,8 @@ void loop() {
   Serial.printf(">pos: %d\n", pos);
   Serial.printf(">pidTerm: %f\n", pid_term_pos);
   Serial.printf("analog: %d\n", analogRead(POT_PIN));
-  //  ledcWrite(PWM_PIN, 100);
-  // analogWrite(13, 100);
-  // analogWrite(PWM_PIN, 100);
+
+  ledcWrite(0,50);
   
   delay(100);
 }

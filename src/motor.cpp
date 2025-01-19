@@ -3,7 +3,7 @@
 #include "pins.h"
 // functions: motor setup and motor direction 
 
-
+#define LEDC_CHANNEL 0
 
 void setup_motor() {
 
@@ -12,9 +12,9 @@ void setup_motor() {
  
   // pinMode(PWM_PIN, OUTPUT);
   pinMode(DIRECTION_PIN, OUTPUT);
-  ledcSetup(4,1500,8);
+  ledcSetup(LEDC_CHANNEL,1500,8);
 
-  ledcAttachPin(PWM_PIN, 4);
+  ledcAttachPin(PWM_PIN, LEDC_CHANNEL);
   // ledcAttach(PWM_PIN, 1500, 8);
 
 }
@@ -35,6 +35,6 @@ void set_direction_speed(int motor_speed) {
     motor_speed = 255;
   }
 
-    ledcWrite(4, motor_speed);
+    // ledcWrite(LEDC_CHANNEL, 50);
     // analogWrite(PWM_PIN, 100);
 }
