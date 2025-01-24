@@ -5,8 +5,8 @@
 #define LOW_POS 400 // Sheave position for lowest gear possible
 #define HIGH_POS 3600 // Sheave position for highest gear possible
 
-#define POS_MAX 3200 // Maximum value of the potentiometer (most together)
-#define POS_MIN 600 // Minimum value of the potentiometer (most apart)
+#define POS_MAX 3500 // Maximum value of the potentiometer (most together)
+#define POS_MIN 1100 // Minimum value of the potentiometer (most apart)
 
 
 void setup_potentiometer();
