@@ -2,6 +2,8 @@
 #define PWM_PIN 33 // SV on driver, sends pulses to the motor 
 #define DIRECTION_PIN 25 // F/R on driver, controls the motor's direction
 #define HALL_OUTPUT_PIN 26 // reads each time the hall sensor passes a magnet
+#define ENCODER_A 27
+#define ENCODER_B 14
 
 // not used yet, input values as necessary 
 // #define potPinTwo //measures across whole potentiometer resistor

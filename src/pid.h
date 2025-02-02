@@ -2,10 +2,15 @@
 #include "motor.h"
 #include "pins.h"
 
-#define POS_Kp 0.6
-#define POS_Ki 0.5
-#define POS_Kd 8
-#define POS_MAX_I_TERM 80
+#define POS_Kp 0.55  //0.6
+#define POS_Ki 0 //0.4
+#define POS_Kd 5 //4.8
+#define POS_MAX_I_TERM 500
+
+// #define POS_Kp 0.37  //0.6
+// #define POS_Ki 0 //0.4
+// #define POS_Kd 0 //4.8
+// #define POS_MAX_I_TERM 50
 
 #define VEL_Kp 10
 #define VEL_Ki 0

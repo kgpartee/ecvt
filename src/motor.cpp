@@ -54,6 +54,7 @@ void set_direction_speed(int motor_speed)
     motor_speed = 255;
   }
 
+
   ledcWrite(LEDC_CHANNEL, motor_speed);
   Serial.printf(">motor_speed: %d\n", motor_speed);
 }
