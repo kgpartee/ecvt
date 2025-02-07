@@ -3,8 +3,8 @@
 #include "pins.h"
 
 #define POS_Kp 3.5  //0.6
-#define POS_Ki 0.2 //0.4
-#define POS_Kd 15 //4.8
+#define POS_Ki 0.10 //0.4
+#define POS_Kd 16 //4.8
 #define POS_MAX_I_TERM 50
 
 // #define POS_Kp 0.37  //0.6
