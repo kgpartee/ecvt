@@ -18,6 +18,9 @@ void setup_pid_task()
 {
     encoder.attachHalfQuad(ENCODER_A, ENCODER_B);
 
+    int analogValue = analogRead(POT_PIN);
+    int pos = map(analogValue, 0, 4095, -140, 140);
+    encoder.setCount(pos);
     
 
     xTaskCreate(pid_loop_task,   // Function to implement the task
@@ -33,17 +36,29 @@ void setup_pid_task()
 #define ALPHA 0.8
 #define D_ALPHA 0.8
 
+#define clamp(x, min, max) (x < min ? min : x > max ? max : x)
+#define lerp(a, b, k) (a + (b - a) * k)
+
+float smoothmin(float a, float b, float k) {
+    float h = clamp(0.5 + 0.5 * (a - b) / k, 0, 1);
+    return lerp(a, b, h) - k * h * (1 - h);
+}
+
+float smoothmax(float a, float b, float k) {
+    return -smoothmin(-a, -b, k);
+}
+
+#define smoothclamp(x, min, max, k) smoothmin(smoothmax(x, min, k), max, k)
 
 void pid_loop_task(void *pvParameters)
 {
 
-    int result = 0;
+    float result = 0;
     float integral = 0;
 
-    int setpoint = 2048;
-    int last_pos = read_pos();
+    float setpoint = 0;
+    float last_error = 0;
 
-    int last_result = 0;
 
     //moving average filter for the derivative
     float moving_average[5] = {0, 0, 0, 0, 0};  
@@ -53,14 +68,17 @@ void pid_loop_task(void *pvParameters)
     {
         
         // change setpoint to follow a sin wave
-        setpoint = 2048 + 512 * sin(millis() / 1000.0);
+        // setpoint = 2048 + 512 * sin(millis() / 1000.0);
+        setpoint = smoothclamp(70 * sin(millis() / 1000.0), -40, 40, 25);
 
-        int pos = read_pos() * ALPHA + pos * (1 - ALPHA);
 
-        int error = setpoint - pos; // calculate the error
+        // int pos = read_pos() * ALPHA + pos * (1 - ALPHA);
+        int pos = encoder.getCount();
 
-        float derivative = last_pos - pos; // Derivatice calculation
-        last_pos = pos;
+        float error = setpoint - pos; // calculate the error
+
+        float derivative = error - last_error; // Derivatice calculation
+        last_error = error;
         moving_average[moving_average_index] = derivative;
         moving_average_index = (moving_average_index + 1) % 5;
 
@@ -73,27 +91,18 @@ void pid_loop_task(void *pvParameters)
 
 
         integral += error; // I controller calculation
-        if (integral > POS_MAX_I_TERM)
-        {
-            integral = POS_MAX_I_TERM;
-        }
-        else if (integral < -POS_MAX_I_TERM)
-        {
-            integral = -POS_MAX_I_TERM;
-        }
+        integral = clamp(integral, -POS_MAX_I_TERM, POS_MAX_I_TERM);
 
         result = error * POS_Kp + integral * POS_Ki + derivative * POS_Kd; // PI controller calculation
         
-        // result = result * PWM_ALPHA + last_result * (1 - PWM_ALPHA);
-        set_direction_speed(result);                                // set the motor speed based on the pid term
+        set_direction_speed((int)result);                                // set the motor speed based on the pid term
 
         Serial.printf(">pos: %d\n", pos);
-        Serial.printf(">pos_setpoint: %d\n", setpoint);
-        Serial.printf(">Vel_error: %d\n", error);
-        Serial.printf(">PWM: %d\n", result > 255 ? 255 : result < -255 ? -255 : result);
+        Serial.printf(">pos_setpoint: %f\n", setpoint);
+        Serial.printf(">Vel_error: %f\n", error);
+        Serial.printf(">PWM: %f\n", result > 255 ? 255 : result < -255 ? -255 : result);
         Serial.printf(">derivative: %f\n", derivative * POS_Kd);
         Serial.printf(">integral: %f\n", integral * POS_Ki);
-        Serial.printf(">encoder: %d\n", encoder.getCount());
         delay(1);
     }
 }
