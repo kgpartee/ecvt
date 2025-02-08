@@ -69,7 +69,7 @@ void pid_loop_task(void *pvParameters)
         
         // change setpoint to follow a sin wave
         // setpoint = 2048 + 512 * sin(millis() / 1000.0);
-        setpoint = smoothclamp(70 * sin(millis() / 4000.0), -30, 30, 25);
+        setpoint = smoothclamp(70 * sin(millis() / 4000.0), -40, 40, 25);
 
 
         // int pos = read_pos() * ALPHA + pos * (1 - ALPHA);
