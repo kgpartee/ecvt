@@ -4,7 +4,15 @@
 #include "potentiometer.h"
 #include "pid.h"
 #include <ESP32Encoder.h>
+#include "pulseCounter.h"
 
+// SECTION: Engine RPM Constants
+#define IDLE_RPM 1800
+#define MAX_RPM 3800
+#define IDEAL_RPM 3000
+
+#define MAX_SHEAVE_SETPOINT 140
+#define IDLE_SHEAVE_SETPOINT -140
 
 // SECTION: Global Variables
 int _vel_setpoint = 0;
@@ -21,7 +29,6 @@ void setup_pid_task()
     int analogValue = analogRead(POT_PIN);
     int pos = map(analogValue, 0, 4095, -140, 140);
     encoder.setCount(pos);
-    
 
     xTaskCreate(pid_loop_task,   // Function to implement the task
                 "pid_loop_task", // A name just for humans
@@ -29,22 +36,23 @@ void setup_pid_task()
                 NULL,            // Parameters to pass to the task
                 1,               // This priority can be adjusted
                 NULL);           // Task handle. Not used here
-
 }
-
 
 #define ALPHA 0.8
 #define D_ALPHA 0.8
 
-#define clamp(x, min, max) (x < min ? min : x > max ? max : x)
+#define clamp(x, min, max) (x < min ? min : x > max ? max \
+                                                    : x)
 #define lerp(a, b, k) (a + (b - a) * k)
 
-float smoothmin(float a, float b, float k) {
+float smoothmin(float a, float b, float k)
+{
     float h = clamp(0.5 + 0.5 * (a - b) / k, 0, 1);
     return lerp(a, b, h) - k * h * (1 - h);
 }
 
-float smoothmax(float a, float b, float k) {
+float smoothmax(float a, float b, float k)
+{
     return -smoothmin(-a, -b, k);
 }
 
@@ -59,18 +67,18 @@ void pid_loop_task(void *pvParameters)
     float setpoint = 0;
     float last_error = 0;
 
-
-    //moving average filter for the derivative
-    float moving_average[5] = {0, 0, 0, 0, 0};  
+    // moving average filter for the derivative
+    float moving_average[5] = {0, 0, 0, 0, 0};
     int moving_average_index = 0;
+
 
     while (1)
     {
-        
+        float rpm = get_engine_rpm();
+
         // change setpoint to follow a sin wave
         // setpoint = 2048 + 512 * sin(millis() / 1000.0);
         setpoint = smoothclamp(70 * sin(millis() / 4000.0), -40, 40, 25);
-
 
         // int pos = read_pos() * ALPHA + pos * (1 - ALPHA);
         int pos = encoder.getCount();
@@ -89,21 +97,29 @@ void pid_loop_task(void *pvParameters)
         }
         derivative = sum / 5.0;
 
-
         integral += error; // I controller calculation
         integral = clamp(integral, -POS_MAX_I_TERM, POS_MAX_I_TERM);
 
         result = error * POS_Kp + integral * POS_Ki + derivative * POS_Kd; // PI controller calculation
-        
-        set_direction_speed((int)result);                                // set the motor speed based on the pid term
+
+        set_direction_speed((int)result); // set the motor speed based on the pid term
 
         Serial.printf(">pos: %d\n", pos);
         Serial.printf(">pos_setpoint: %f\n", setpoint);
-        Serial.printf(">Vel_error: %f\n", error);
-        Serial.printf(">PWM: %f\n", result > 255 ? 255 : result < -255 ? -255 : result);
-        Serial.printf(">derivative: %f\n", derivative * POS_Kd);
-        Serial.printf(">integral: %f\n", integral * POS_Ki);
+        // Serial.printf(">Vel_error: %f\n", error);
+        // Serial.printf(">PWM: %f\n", result > 255 ? 255 : result < -255 ? -255 : result);
+        // Serial.printf(">derivative: %f\n", derivative * POS_Kd);
+        // Serial.printf(">integral: %f\n", integral * POS_Ki);
+        Serial.printf(">rpm: %f\n", rpm);
+        Serial.printf(">count: %d\n", get_pulse_counter());
+        // Serial.printf(">deltaCount: %f\n", deltaCount);
+        // Serial.printf(">deltaT: %f\n", deltaT);
         delay(1);
     }
 }
 
+
+float calculate_setpoint(float rpm)
+{
+    return 0;
+}
