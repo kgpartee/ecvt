@@ -74,7 +74,7 @@ void pid_loop_task(void *pvParameters)
 
     while (1)
     {
-        float rpm = get_engine_rpm();
+        // float rpm = get_engine_rpm();
 
         // change setpoint to follow a sin wave
         // setpoint = 2048 + 512 * sin(millis() / 1000.0);
@@ -106,12 +106,11 @@ void pid_loop_task(void *pvParameters)
 
         Serial.printf(">pos: %d\n", pos);
         Serial.printf(">pos_setpoint: %f\n", setpoint);
-        // Serial.printf(">Vel_error: %f\n", error);
-        // Serial.printf(">PWM: %f\n", result > 255 ? 255 : result < -255 ? -255 : result);
+        Serial.printf(">PWM: %f\n", result > 255 ? 255 : result < -255 ? -255 : result);
         // Serial.printf(">derivative: %f\n", derivative * POS_Kd);
         // Serial.printf(">integral: %f\n", integral * POS_Ki);
-        Serial.printf(">rpm: %f\n", rpm);
-        Serial.printf(">count: %d\n", get_pulse_counter());
+        // Serial.printf(">rpm: %f\n", rpm);
+        // Serial.printf(">count: %d\n", get_pulse_counter());
         // Serial.printf(">deltaCount: %f\n", deltaCount);
         // Serial.printf(">deltaT: %f\n", deltaT);
         delay(1);
@@ -121,5 +120,6 @@ void pid_loop_task(void *pvParameters)
 
 float calculate_setpoint(float rpm)
 {
+    
     return 0;
 }

@@ -38,13 +38,14 @@ float get_engine_rpm()
     u_int64_t currentTime = micros();
     u_int64_t currentCount = get_pulse_counter();
     float deltaT = (currentTime - lastTime) / 1000000.0;
-    if (deltaT > 0.1)
-    {
+    Serial.printf(">dt: %f\n", deltaT);
+    // if (deltaT > 0.1)
+    // {
         uint64_t deltaCount = currentCount - lastCount;
         rpm = 60.0 * deltaCount / (deltaT * 6.0); // 6 pulses per revolution
 
         lastTime = currentTime;
         lastCount = currentCount;
-    }
+    // }
     return rpm;
 }
