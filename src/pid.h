@@ -9,7 +9,7 @@
 #define POS_MAX_I_TERM 50
 
 
-#define RPM_Kp 0.0025
+#define RPM_Kp 0.0005
 
 
 

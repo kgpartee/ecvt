@@ -7,15 +7,16 @@
 #include "pulseCounter.h"
 
 // SECTION: Engine RPM Constants
-#define IDLE_RPM 500
-#define MAX_RPM 1200
-#define SETPOINT_RPM 800
-// #define IDLE_RPM 1800
-// #define MAX_RPM 3800
-// #define SETPOINT_RPM 3000
+// #define IDLE_RPM 500
+// #define MAX_RPM 1200
+// #define SETPOINT_RPM 800
+#define IDLE_RPM 2000
+#define MAX_RPM 3800
+#define SETPOINT_RPM 3000
 
 #define MAX_SHEAVE_SETPOINT 196 // 212
-#define IDLE_SHEAVE_SETPOINT -76
+#define IDLE_SHEAVE_SETPOINT -90
+#define LOW_SHEAVE_SETPOINT -50
 
 // SECTION: Global Variables
 int _vel_setpoint = 0;
@@ -93,9 +94,8 @@ void pid_loop_task(void *pvParameters)
         rpm = moving_average(rpm, filter_array_rpm, FILTER_SIZE, &filter_index_rpm);
 
         // int targetRPM = map(analogRead(36), 0, 4095, 500, 1200);
-        int targetRPM = 500;
-        // setpoint = calculate_setpoint(rpm, setpoint, (float)targetRPM);
-        setpoint = map(analogRead(36), 0, 4095, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
+        setpoint = calculate_setpoint(rpm, setpoint, SETPOINT_RPM);
+        // setpoint = map(analogRead(36), 0, 4095, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
         // Serial.printf(">manualSetpoint: %d\n", map(analogRead(36), 0, 4095, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT));
 
         int pos = encoder.getCount();
@@ -137,16 +137,16 @@ float calculate_setpoint(float rpm, float sheave_setpoint, float targetRPM)
     {
         return IDLE_SHEAVE_SETPOINT;
     }
-    else if (rpm > MAX_RPM) // if the rpm is greater than the max rpm
-    {
-        return MAX_SHEAVE_SETPOINT;
-    }
+    // else if (rpm > MAX_RPM) // if the rpm is greater than the max rpm
+    // {
+    //     return MAX_SHEAVE_SETPOINT;
+    // }
     else // P controller for RPM setpoint
     {
         float rpmError = targetRPM - rpm; // positive error means the rpm is too low
 
         float d_setpoint = -rpmError * RPM_Kp; // negative because lower rpm means more negative sheve position position
-        return clamp(sheave_setpoint + d_setpoint, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
+        return clamp(sheave_setpoint + d_setpoint, LOW_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
     }
 }
 
