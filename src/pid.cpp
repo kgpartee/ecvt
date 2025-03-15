@@ -15,7 +15,7 @@
 #define SETPOINT_RPM 3000
 
 #define MAX_SHEAVE_SETPOINT 196 // 212
-#define IDLE_SHEAVE_SETPOINT -90
+#define IDLE_SHEAVE_SETPOINT -92
 #define LOW_SHEAVE_SETPOINT -50
 
 // SECTION: Global Variables
@@ -50,9 +50,16 @@ void setup_pid_task()
 #define ALPHA 0.8
 #define D_ALPHA 0.8
 
+
+// clamp function: clamps a value between a minimum and maximum
+// lerp function: linear interpolation between two values
 #define clamp(x, min, max) (x < min ? min : x > max ? max \
                                                     : x)
 #define lerp(a, b, k) (a + (b - a) * k)
+
+#define float_map(x, in_min, in_max, out_min, out_max) \
+    (out_min + (out_max - out_min) * ((x - in_min) / (in_max - in_min)))
+
 
 float smoothmin(float a, float b, float k)
 {
@@ -133,22 +140,18 @@ void pid_loop_task(void *pvParameters)
 
 float calculate_setpoint(float rpm, float sheave_setpoint, float targetRPM)
 {
-    if (rpm < IDLE_RPM) // if the rpm is less than the idle rpm
+    // linera interpolation between the idle and max rpm
+    if (rpm < IDLE_RPM)
     {
         return IDLE_SHEAVE_SETPOINT;
     }
-    // else if (rpm > MAX_RPM) // if the rpm is greater than the max rpm
-    // {
-    //     return MAX_SHEAVE_SETPOINT;
-    // }
-    else // P controller for RPM setpoint
-    {
-        float rpmError = targetRPM - rpm; // positive error means the rpm is too low
+    float setpoint = float_map(rpm, IDLE_RPM, MAX_RPM, LOW_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
+    setpoint = clamp(setpoint, LOW_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
+    return setpoint;
 
-        float d_setpoint = -rpmError * RPM_Kp; // negative because lower rpm means more negative sheve position position
-        return clamp(sheave_setpoint + d_setpoint, LOW_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
-    }
 }
+
+
 
 // moving average filter
 // newVal is the new value to add to the array

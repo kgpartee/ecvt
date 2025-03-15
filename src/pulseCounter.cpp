@@ -10,7 +10,7 @@ void init_pulse_counter()
     pcnt_isr_service_install(0);
     // setup hardware pulse counters
     // initialise counter unit 0, channel 0 with signal input GPIO pin and control signal input pin (0 = no control signal input)
-    pc0.initialise(HALL_OUTPUT_PIN, PCNT_PIN_NOT_USED);
+    pc0.initialise(HALL_OUTPUT_PIN, PCNT_PIN_NOT_USED); // if this errors go to definition and past counter_id = (pcnt_unit_t)2;
 
     // count up on negative edges, don't count on positive edges
     pc0.set_mode(PCNT_COUNT_INC, PCNT_COUNT_INC, PCNT_MODE_KEEP, PCNT_MODE_KEEP);
