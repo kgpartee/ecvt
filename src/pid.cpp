@@ -92,9 +92,11 @@ void pid_loop_task(void *pvParameters)
         float rpm = get_engine_rpm();
         rpm = moving_average(rpm, filter_array_rpm, FILTER_SIZE, &filter_index_rpm);
 
-        int targetRPM = map(analogRead(36), 0, 4095, 500, 1200);
-        setpoint = calculate_setpoint(rpm, setpoint, (float)targetRPM);
-        // setpoint = map(analogRead(36), 0, 4095, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
+        // int targetRPM = map(analogRead(36), 0, 4095, 500, 1200);
+        int targetRPM = 500;
+        // setpoint = calculate_setpoint(rpm, setpoint, (float)targetRPM);
+        setpoint = map(analogRead(36), 0, 4095, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
+        // Serial.printf(">manualSetpoint: %d\n", map(analogRead(36), 0, 4095, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT));
 
         int pos = encoder.getCount();
 
@@ -116,11 +118,11 @@ void pid_loop_task(void *pvParameters)
         Serial.printf(">pos_setpoint: %f\n", setpoint);
         Serial.printf(">PWM: %f\n", result > 255 ? 255 : result < -255 ? -255
                                                                        : result);
-        Serial.printf(">analog: %d\n", analogRead(POT_PIN));
+        // Serial.printf(">analog: %d\n", analogRead(POT_PIN));
         // Serial.printf(">derivative: %f\n", derivative * POS_Kd);
         // Serial.printf(">integral: %f\n", integral * POS_Ki);
         Serial.printf(">rpm: %f\n", rpm);
-        Serial.printf(">targetRPM: %d\n", targetRPM);
+        // Serial.printf(">targetRPM: %d\n", targetRPM);
 
         // Serial.printf(">count: %d\n", get_pulse_counter());
         // Serial.printf(">deltaCount: %f\n", deltaCount);
