@@ -3,13 +3,13 @@
 #include "pins.h"
 
 // #define POS_Kp 3.8 
-#define POS_Kp 4 
+#define POS_Kp 1.0 
 #define POS_Ki 0 
-#define POS_Kd 30 
+#define POS_Kd 0 //30 
 #define POS_MAX_I_TERM 50
 
 
-#define RPM_Kp 0.0005
+#define RPM_Kp 0.001
 
 
 

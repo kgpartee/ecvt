@@ -16,7 +16,7 @@
 
 #define MAX_SHEAVE_SETPOINT 196 // 212
 #define IDLE_SHEAVE_SETPOINT -90
-#define LOW_SHEAVE_SETPOINT -50
+#define LOW_SHEAVE_SETPOINT -60
 
 // SECTION: Global Variables
 int _vel_setpoint = 0;
@@ -53,6 +53,13 @@ void setup_pid_task()
 #define clamp(x, min, max) (x < min ? min : x > max ? max \
                                                     : x)
 #define lerp(a, b, k) (a + (b - a) * k)
+
+#define float_map(x, in_min, in_max, out_min, out_max) \
+    (out_min + (out_max - out_min) * ((x - in_min) / (in_max - in_min)))
+
+#define clamp_map(x, in_min, in_max, out_min, out_max) \
+    clamp(float_map(x, in_min, in_max, out_min, out_max), out_min, out_max)
+
 
 float smoothmin(float a, float b, float k)
 {
@@ -119,7 +126,7 @@ void pid_loop_task(void *pvParameters)
         Serial.printf(">PWM: %f\n", result > 255 ? 255 : result < -255 ? -255
                                                                        : result);
         // Serial.printf(">analog: %d\n", analogRead(POT_PIN));
-        // Serial.printf(">derivative: %f\n", derivative * POS_Kd);
+        Serial.printf(">derivative: %f\n", derivative * POS_Kd);
         // Serial.printf(">integral: %f\n", integral * POS_Ki);
         Serial.printf(">rpm: %f\n", rpm);
         // Serial.printf(">targetRPM: %d\n", targetRPM);
@@ -146,6 +153,9 @@ float calculate_setpoint(float rpm, float sheave_setpoint, float targetRPM)
         float rpmError = targetRPM - rpm; // positive error means the rpm is too low
 
         float d_setpoint = -rpmError * RPM_Kp; // negative because lower rpm means more negative sheve position position
+
+        float lowSetpoint = clamp_map(rpm, 2000, 3000, LOW_SHEAVE_SETPOINT, 0);
+        
         return clamp(sheave_setpoint + d_setpoint, LOW_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
     }
 }
