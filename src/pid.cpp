@@ -10,13 +10,15 @@
 // #define IDLE_RPM 500
 // #define MAX_RPM 1200
 // #define SETPOINT_RPM 800
-#define IDLE_RPM 2000
+#define IDLE_RPM 1900
 #define MAX_RPM 3800
-#define SETPOINT_RPM 3000
+#define TARGET_RPM 3000
 
-#define MAX_SHEAVE_SETPOINT 196 // 212
+
+#define MAX_SHEAVE_SETPOINT 220 
 #define IDLE_SHEAVE_SETPOINT -90
-#define LOW_SHEAVE_SETPOINT -50
+#define LOW_SHEAVE_SETPOINT -65
+#define LOW_MAX_SETPOINT 50
 
 // SECTION: Global Variables
 int _vel_setpoint = 0;
@@ -24,7 +26,7 @@ ESP32Encoder encoder;
 
 // SECTION: Function Prototypes
 void pid_loop_task(void *pvParameters);
-float calculate_setpoint(float rpm, float sheave_setpoint, float targetRPM);
+float calculate_setpoint(float rpm, float sheave_setpoint);
 float moving_average(float newVal, float *arr, int n, int *index);
 
 // sets up a freertos task for the pid loop
@@ -81,7 +83,7 @@ void pid_loop_task(void *pvParameters)
     int filter_index_derivative = 0;
 
 // moving average filter for the rpm
-#define FILTER_SIZE 250
+#define FILTER_SIZE 50
     float filter_array_rpm[FILTER_SIZE];
     for (int i = 0; i < FILTER_SIZE; i++)
         filter_array_rpm[i] = 0;
@@ -94,7 +96,7 @@ void pid_loop_task(void *pvParameters)
         rpm = moving_average(rpm, filter_array_rpm, FILTER_SIZE, &filter_index_rpm);
 
         // int targetRPM = map(analogRead(36), 0, 4095, 500, 1200);
-        setpoint = calculate_setpoint(rpm, setpoint, SETPOINT_RPM);
+        setpoint = calculate_setpoint(rpm, setpoint);
         // setpoint = map(analogRead(36), 0, 4095, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
         // Serial.printf(">manualSetpoint: %d\n", map(analogRead(36), 0, 4095, IDLE_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT));
 
@@ -131,8 +133,10 @@ void pid_loop_task(void *pvParameters)
     }
 }
 
-float calculate_setpoint(float rpm, float sheave_setpoint, float targetRPM)
+float calculate_setpoint(float rpm, float sheave_setpoint)
 {
+    static float last_Error = 0;
+    
     if (rpm < IDLE_RPM) // if the rpm is less than the idle rpm
     {
         return IDLE_SHEAVE_SETPOINT;
@@ -143,10 +147,20 @@ float calculate_setpoint(float rpm, float sheave_setpoint, float targetRPM)
     // }
     else // P controller for RPM setpoint
     {
-        float rpmError = targetRPM - rpm; // positive error means the rpm is too low
+        float rpmError = TARGET_RPM - rpm; // positive error means the rpm is too low
+        
+        float d_error = last_Error - rpmError; // Derivative error
 
-        float d_setpoint = -rpmError * RPM_Kp; // negative because lower rpm means more negative sheve position position
-        return clamp(sheave_setpoint + d_setpoint, LOW_SHEAVE_SETPOINT, MAX_SHEAVE_SETPOINT);
+
+        float d_setpoint = -rpmError * RPM_Kp + d_error * RPM_Kd; // negative because lower rpm means more negative sheve position position
+
+        float low_setpoint = lerp(LOW_SHEAVE_SETPOINT, LOW_MAX_SETPOINT, (rpm - IDLE_RPM) / (MAX_RPM - IDLE_RPM));
+
+        low_setpoint = clamp(low_setpoint, LOW_SHEAVE_SETPOINT, LOW_MAX_SETPOINT);
+
+        last_Error = rpmError;
+
+        return clamp(sheave_setpoint + d_setpoint, low_setpoint, MAX_SHEAVE_SETPOINT);
     }
 }
 
